@@ -1,14 +1,19 @@
-"""Modular n8n workflow auditor with runtime execution-log ingestion and monetary loss estimation."""
+"""Modular n8n workflow auditor with runtime execution-log ingestion and EcoLogits integration.
+
+Separates:
+1. Financial operating cost (from pricing.json + runtime logs or explicit baseline assumptions)
+2. Environmental estimates (from EcoLogits; unsupported models marked 'not_estimated', never 0.0)
+3. Operational / governance review flags (non-legal engineering indicators)
+"""
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import json
 from pathlib import Path
 from typing import Any
 
-from .energy_table import lookup
-from .thermodynamics import MissingEnergyConstantsError, efficiency
+from .environmental import estimate_cloud_impact
 
 _DEFAULT_PRICING_JSON = Path(__file__).parent.parent / "pricing.json"
 
@@ -59,19 +64,19 @@ CLOUD_AI_DOMAINS = [
 ]
 
 LOCAL_REPLACEMENTS = {
-    "lmChatOpenAi": "Local 8B-Class LLM (e.g., Llama 3/Mistral via vLLM/Llama.cpp)",
-    "lmChatAnthropic": "Local 8B-Class LLM (e.g., Llama 3/Mistral via vLLM/Llama.cpp)",
-    "openAi_audio": "Local Audio Transcription (e.g., Whisper.cpp)",
-    "openAi_text": "Local 8B-Class LLM (e.g., Llama 3/Mistral via vLLM/Llama.cpp)",
-    "agent": "Sovereign Python Orchestration (e.g., local workflow engine)",
-    "memoryBufferWindow": "Persistent Local Memory (e.g., Self-hosted SQLite/PostgreSQL)",
-    "baserowTool": "Self-hosted CRM/Database (e.g., Baserow Self-Hosted or Local SQL)",
-    "gmailTool": "Self-hosted Email (e.g., Postal or Listmonk)",
-    "googleCalendarTool": "Self-hosted Calendar (e.g., Cal.com or Nextcloud Calendar)",
-    "mistralAi": "Local 8B-Class LLM (e.g., Llama 3/Mistral via vLLM/Llama.cpp)",
-    "googleSheets": "Self-hosted Spreadsheet/DB (e.g., NocoDB or Baserow)",
-    "gmail": "Self-hosted Email (e.g., Postal or Listmonk)",
-    "lmChatGoogleGemini": "Local 8B-Class LLM (e.g., Llama 3/Mistral via vLLM/Llama.cpp)",
+    "lmChatOpenAi": "Candidate: smaller API model or locally hosted open-weight LLM (validate quality first)",
+    "lmChatAnthropic": "Candidate: smaller API model or locally hosted open-weight LLM (validate quality first)",
+    "openAi_audio": "Candidate: local audio transcription (e.g., Whisper.cpp)",
+    "openAi_text": "Candidate: smaller API model or locally hosted open-weight LLM",
+    "agent": "Candidate: deterministic script or narrower local orchestration",
+    "memoryBufferWindow": "Candidate: self-hosted SQLite/PostgreSQL state",
+    "baserowTool": "Candidate: self-hosted Baserow or local SQL",
+    "gmailTool": "Candidate: self-hosted SMTP / Postal / Listmonk",
+    "googleCalendarTool": "Candidate: self-hosted Cal.com / Nextcloud Calendar",
+    "mistralAi": "Candidate: locally hosted open-weight LLM",
+    "googleSheets": "Candidate: self-hosted NocoDB / Baserow / SQLite",
+    "gmail": "Candidate: self-hosted SMTP / Postal / Listmonk",
+    "lmChatGoogleGemini": "Candidate: smaller API model or locally hosted open-weight LLM",
 }
 
 REGULATORY_HINTS = {
@@ -93,7 +98,9 @@ def _load_pricing(path: Path | None = None) -> dict[str, dict[str, float]]:
     return json.loads(p.read_text(encoding="utf-8")).get("models", {})
 
 
-def _estimate_token_cost_usd(model: str, tokens_in: int, tokens_out: int, pricing: dict[str, dict[str, float]]) -> float:
+def _estimate_token_cost_usd(
+    model: str, tokens_in: int, tokens_out: int, pricing: dict[str, dict[str, float]]
+) -> float | None:
     rates = pricing.get(model)
     if not rates:
         for k, v in pricing.items():
@@ -101,12 +108,11 @@ def _estimate_token_cost_usd(model: str, tokens_in: int, tokens_out: int, pricin
                 rates = v
                 break
     if not rates:
-        return 0.0
+        return None
     return (tokens_in / 1_000_000.0) * rates["input"] + (tokens_out / 1_000_000.0) * rates["output"]
 
 
 def _extract_model_name(params: dict[str, Any]) -> str:
-    """Extract model identifier from n8n v1/v2 `model` or `modelId` parameter schemas."""
     for key in ("model", "modelId"):
         raw = params.get(key)
         if isinstance(raw, dict):
@@ -159,21 +165,18 @@ class WorkflowAuditReport:
     workflow_name: str
     total_nodes: int
     sticky_notes_ignored: int = 0
-    energy_source: str = "baseline_estimate"  # "runtime_log", "mixed", or "baseline_estimate"
+    cost_source: str = "baseline_estimate"  # "runtime_log", "mixed", or "baseline_estimate"
     red_flags: list[str] = field(default_factory=list)
     yellow_flags: list[str] = field(default_factory=list)
     green_flags: list[str] = field(default_factory=list)
     migrations: list[str] = field(default_factory=list)
     detected_nodes: list[dict[str, Any]] = field(default_factory=list)
     llm_features: list[dict[str, Any]] = field(default_factory=list)
+    environmental_estimates: list[dict[str, Any]] = field(default_factory=list)
     agent_harness_nodes: list[str] = field(default_factory=list)
-    estimated_run_joules: float = 0.0
-    estimated_run_joules_low: float = 0.0
-    estimated_run_joules_high: float = 0.0
-    estimated_run_cost_usd: float = 0.0
-    estimated_monetary_loss_per_run_usd: float = 0.0
+    estimated_run_cost_usd: float | None = None
     total_latency_ms: float = 0.0
-    total_rework_runs: int = 0
+    extra_model_calls: int = 0
     mermaid_graph: str = ""
 
 
@@ -272,6 +275,8 @@ class N8nWorkflowAuditor:
         ai_vendors: set[str] = set()
         runtime_hits = 0
         baseline_hits = 0
+        total_cost = 0.0
+        any_cost_computed = False
 
         for i, node in enumerate(active_nodes):
             raw_type = node.get("type", "").split(".")[-1]
@@ -315,7 +320,7 @@ class N8nWorkflowAuditor:
                 lookup_type = "openAi_audio" if params.get("resource") == "audio" else "openAi_text"
 
             if lookup_type in LOCAL_REPLACEMENTS:
-                report.migrations.append(f"'{node_name}' -> Consider {LOCAL_REPLACEMENTS[lookup_type]}")
+                report.migrations.append(f"'{node_name}' -> {LOCAL_REPLACEMENTS[lookup_type]}")
 
             if vendor == "google":
                 report.red_flags.append(
@@ -333,50 +338,56 @@ class N8nWorkflowAuditor:
                     rt = runtime_map.get(node_name)
                     if rt and rt["has_tokens"]:
                         n_in, n_out = rt["tokens_in"], rt["tokens_out"]
-                        rework_turns = max(1, rt["runs"])
+                        runs = max(1, rt["runs"])
                         latency = rt["latency_ms"]
                         runtime_hits += 1
+                        basis = "runtime_log"
                     else:
                         n_in, n_out = assumed_in_tokens, assumed_out_tokens
-                        rework_turns = 1
+                        runs = 1
                         latency = rt["latency_ms"] if rt else None
                         baseline_hits += 1
+                        basis = "baseline_estimate"
 
                     if latency:
                         report.total_latency_ms += latency
-                    if rework_turns > 1:
-                        report.total_rework_runs += rework_turns - 1
+                    if runs > 1:
+                        report.extra_model_calls += runs - 1
 
                     cost_usd = _estimate_token_cost_usd(model_name, n_in, n_out, pricing)
-                    report.estimated_run_cost_usd += cost_usd
-
-                    try:
-                        c = lookup(model_name)
-                        eff = efficiency(n_in, n_out, c, rework_turns=rework_turns, latency_ms=latency)
-                        report.estimated_run_joules += eff.e_in
-                        report.estimated_run_joules_low += eff.e_in_low
-                        report.estimated_run_joules_high += eff.e_in_high
-                        loss_usd = cost_usd * eff.waste_share
-                        report.estimated_monetary_loss_per_run_usd += loss_usd
-                        report.llm_features.append({
-                            "node_name": node_name,
-                            "vendor": vendor,
-                            "model": c.model,
-                            "gpu": c.gpu,
-                            "quantization": c.quantization,
-                            "is_reasoning": c.is_reasoning,
-                            "tokens_in": n_in,
-                            "tokens_out": n_out,
-                            "rework_turns": rework_turns,
-                            "e_in_joules": eff.e_in,
-                            "waste_share": eff.waste_share,
-                            "cost_usd": cost_usd,
-                            "loss_usd": loss_usd,
-                        })
-                    except MissingEnergyConstantsError:
+                    if cost_usd is not None:
+                        total_cost += cost_usd
+                        any_cost_computed = True
+                    else:
                         report.yellow_flags.append(
-                            f"Model '{model_name}' in '{node_name}' not found in energy.json; energy unestimated."
+                            f"Model '{model_name}' in '{node_name}' not found in pricing.json; API cost not quantified."
                         )
+
+                    # Separate environmental estimate via EcoLogits (never merged into financial cost)
+                    eco = estimate_cloud_impact(
+                        provider=vendor,
+                        model_name=model_name,
+                        output_tokens=n_out,
+                        request_latency_s=(latency / 1000.0) if latency else 1.0,
+                    )
+                    report.environmental_estimates.append({
+                        "node_name": node_name,
+                        **asdict(eco),
+                    })
+
+                    report.llm_features.append({
+                        "node_name": node_name,
+                        "vendor": vendor,
+                        "model": model_name,
+                        "tokens_in": n_in,
+                        "tokens_out": n_out,
+                        "runs": runs,
+                        "basis": basis,
+                        "cost_usd": cost_usd,
+                        "env_status": eco.status,
+                        "env_energy_kwh": eco.energy_kwh,
+                        "env_gwp_kgco2eq": eco.gwp_kgco2eq,
+                    })
 
             if vendor in ("openai", "anthropic") or is_cloud_http:
                 params_str = json.dumps(params).lower()
@@ -392,12 +403,13 @@ class N8nWorkflowAuditor:
                     f"Node '{node_name}' uses local infrastructure (reduces cross-border transfer exposure; not a legal determination)."
                 )
 
+        report.estimated_run_cost_usd = total_cost if any_cost_computed else None
         if runtime_hits > 0 and baseline_hits == 0:
-            report.energy_source = "runtime_log"
+            report.cost_source = "runtime_log"
         elif runtime_hits > 0 and baseline_hits > 0:
-            report.energy_source = "mixed"
+            report.cost_source = "mixed"
         else:
-            report.energy_source = "baseline_estimate"
+            report.cost_source = "baseline_estimate"
 
         if len(ai_vendors) == 1:
             v = next(iter(ai_vendors)).upper()

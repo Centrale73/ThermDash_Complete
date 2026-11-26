@@ -1,2 +1,4 @@
 reportlab>=4.0.0
 pytest>=8.0.0
+ecologits>=0.7.0
+codecarbon>=3.0.0
