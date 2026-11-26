@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThermDash Complete — AI Efficiency &amp; n8n Audit Studio</title>
+  <style>
+    :root {
+      --bg: #0b101b;
+      --surface: #121a2b;
+      --surface-2: #182238;
+      --border: #263452;
+      --text: #e6edf7;
+      --muted: #93a4c3;
+      --accent: #38bdf8;
+      --accent-2: #10b981;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #101829 0%, #0b101b 100%);
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #06121c;
+      font-size: 16px;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .brand p {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    nav.tabs {
+      display: flex;
+      gap: 8px;
+    }
+    .tab-btn {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { color: var(--text); border-color: #3a4f7a; }
+    .tab-btn.active {
+      background: rgba(56, 189, 248, 0.14);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 28px 48px;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 18px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 18px;
+    }
+    .card h2, .card h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      font-weight: 650;
+      color: var(--text);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 12px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      font-weight: 500;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    textarea {
+      font-family: var(--mono);
+      font-size: 12px;
+      min-height: 150px;
+      resize: vertical;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+      align-items: center;
+    }
+    button.primary {
+      background: linear-gradient(135deg, var(--accent), #0ea5e9);
+      color: #05131e;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    button.secondary:hover { border-color: var(--accent); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .kpi {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 14px;
+    }
+    .kpi .k-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .kpi .k-val { font-size: 22px; font-weight: 750; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .kpi .k-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+    .bar-wrap {
+      background: #0d1422;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      height: 14px;
+      overflow: hidden;
+      display: flex;
+      margin: 10px 0 6px;
+    }
+    .bar-useful { background: var(--accent-2); height: 100%; transition: width 0.25s ease; }
+    .bar-waste { background: var(--warn); height: 100%; transition: width 0.25s ease; }
+    .flag-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .flag-item {
+      padding: 9px 12px;
+      border-radius: 7px;
+      font-size: 13px;
+      border-left: 3px solid;
+      background: var(--surface-2);
+    }
+    .flag-red { border-color: var(--danger); }
+    .flag-yellow { border-color: var(--warn); }
+    .flag-green { border-color: var(--accent-2); }
+    .flag-mig { border-color: var(--accent); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+    }
+    .pill.cloud { color: var(--warn); border-color: rgba(245, 158, 11, 0.4); }
+    .pill.local { color: var(--accent-2); border-color: rgba(16, 185, 129, 0.4); }
+    .error-box {
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fecaca;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      display: none;
+    }
+    pre.code-box {
+      background: #080d17;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-x: auto;
+      margin: 0;
+    }
+    .drop-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+      gap: 8px;
+    }
+    input[type="file"] { padding: 5px; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-badge">TD</div>
+      <div>
+        <h1>ThermDash Complete</h1>
+        <p>Local-first AI Thermodynamics, n8n Workflow Audit &amp; Law 25 Inventory</p>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button class="tab-btn active" data-tab="audit">n8n Workflow Auditor</button>
+      <button class="tab-btn" data-tab="energy">Energy Calculator</button>
+      <button class="tab-btn" data-tab="models">Model Energy Table</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- TAB 1: n8n Workflow Auditor -->
+    <section id="tab-audit" class="panel active">
+      <div id="audit-error" class="error-box"></div>
+      <div class="card">
+        <div class="drop-row">
+          <h2 style="margin:0;">1. Workflow &amp; Execution Input</h2>
+          <button class="secondary" id="btn-load-sample">Load Sample Workflow</button>
+        </div>
+        <div class="grid-2">
+          <div>
+            <div class="drop-row">
+              <label for="wf-file" style="margin:0;">n8n Workflow JSON (required)</label>
+              <input type="file" id="wf-file" accept=".json,application/json" style="width:auto;" />
+            </div>
+            <textarea id="wf-json" placeholder="Paste n8n workflow JSON here or upload a .json file..."></textarea>
+          </div>
+          <div>
+            <div class="drop-row">
+              <label for="exec-file" style="margin:0;">n8n Execution Log JSON (optional)</label>
+              <input type="file" id="exec-file" accept=".json,application/json" style="width:auto;" />
+            </div>
+            <textarea id="exec-json" placeholder="Optional: paste execution log JSON for runtime token counts &amp; rework detection..."></textarea>
+          </div>
+        </div>
+        <div class="form-grid" style="margin-top:14px;">
+          <div>
+            <label for="audit-in">Assumed Input Tokens</label>
+            <input type="number" id="audit-in" value="1000" min="0" />
+          </div>
+          <div>
+            <label for="audit-out">Assumed Output Tokens</label>
+            <input type="number" id="audit-out" value="400" min="0" />
+          </div>
+          <div>
+            <label for="audit-runs">Monthly Runs (for PDF projection)</label>
+            <input type="number" id="audit-runs" value="1000" min="1" />
+          </div>
+          <div>
+            <label for="audit-rate">Staff Hourly Rate (USD)</label>
+            <input type="number" id="audit-rate" value="45" min="0" step="1" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="primary" id="btn-run-audit">Run n8n Audit</button>
+          <button class="secondary" id="btn-dl-pdf" disabled>Download Executive PDF</button>
+          <button class="secondary" id="btn-dl-csv" disabled>Download Inventory CSV</button>
+          <button class="secondary" id="btn-dl-json" disabled>Download Inventory JSON</button>
+          <button class="secondary" id="btn-dl-mmd" disabled>Download Mermaid (.mmd)</button>
+        </div>
+      </div>
+
+      <div id="audit-results" style="display:none;">
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="k-label">Workflow</div>
+            <div class="k-val" id="res-wf-name" style="font-size:17px;">—</div>
+            <div class="k-sub" id="res-basis">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Est. Energy / Run</div>
+            <div class="k-val" id="res-joules">—</div>
+            <div class="k-sub" id="res-iqr">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Est. API Cost / Run</div>
+            <div class="k-val" id="res-cost">—</div>
+            <div class="k-sub" id="res-latency">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Monetary Loss / Run</div>
+            <div class="k-val" id="res-loss" style="color:var(--warn);">—</div>
+            <div class="k-sub" id="res-rework">—</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Governance &amp; Reliability Findings</h3>
+            <ul class="flag-list" id="res-flags"></ul>
+          </div>
+          <div class="card">
+            <h3>Recommended Local Migrations</h3>
+            <ul class="flag-list" id="res-migrations"></ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Law 25 AI Tool Inventory</h3>
+          <div style="overflow-x:auto;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Node</th>
+                  <th>Vendor</th>
+                  <th>Model</th>
+                  <th>Deployment</th>
+                  <th>Review Note</th>
+                </tr>
+              </thead>
+              <tbody id="res-inventory"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="drop-row">
+            <h3 style="margin:0;">Mermaid Dependency Graph</h3>
+            <button class="secondary" id="btn-copy-mmd">Copy Mermaid</button>
+          </div>
+          <pre class="code-box" id="res-mermaid"></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Energy Calculator -->
+    <section id="tab-energy" class="panel">
+      <div id="energy-error" class="error-box"></div>
+      <div class="card">
+        <h2>Thermodynamic Efficiency Calculator</h2>
+        <div class="form-grid">
+          <div>
+            <label for="calc-model">Model</label>
+            <select id="calc-model"></select>
+          </div>
+          <div>
+            <label for="calc-in">Input Tokens</label>
+            <input type="number" id="calc-in" value="1200" min="0" />
+          </div>
+          <div>
+            <label for="calc-out">Output Tokens</label>
+            <input type="number" id="calc-out" value="500" min="0" />
+          </div>
+          <div>
+            <label for="calc-reasoning">Reasoning Tokens (optional)</label>
+            <input type="number" id="calc-reasoning" value="0" min="0" />
+          </div>
+          <div>
+            <label for="calc-rework">Rework Turns</label>
+            <input type="number" id="calc-rework" value="1" min="1" />
+          </div>
+          <div>
+            <label for="calc-quality">Quality Override (0–1, optional)</label>
+            <input type="number" id="calc-quality" placeholder="auto" min="0" max="1" step="0.05" />
+          </div>
+          <div>
+            <label for="calc-latency">Latency ms (optional)</label>
+            <input type="number" id="calc-latency" placeholder="optional" min="0" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="primary" id="btn-calc-energy">Calculate Efficiency</button>
+        </div>
+      </div>
+
+      <div id="energy-results" class="card" style="display:none;">
+        <h3>Results</h3>
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="k-label">Total Energy Input (E_in)</div>
+            <div class="k-val" id="e-in">—</div>
+            <div class="k-sub" id="e-iqr">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Useful Work (W_useful)</div>
+            <div class="k-val" id="e-useful" style="color:var(--accent-2);">—</div>
+            <div class="k-sub" id="e-hw">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Efficiency (η)</div>
+            <div class="k-val" id="e-eta">—</div>
+            <div class="k-sub">Useful / Total Input</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Waste / Heat Share</div>
+            <div class="k-val" id="e-waste" style="color:var(--warn);">—</div>
+            <div class="k-sub" id="e-turns">—</div>
+          </div>
+        </div>
+        <div class="bar-wrap">
+          <div class="bar-useful" id="bar-useful" style="width:0%"></div>
+          <div class="bar-waste" id="bar-waste" style="width:100%"></div>
+        </div>
+        <pre class="code-box" id="e-json" style="margin-top:14px;"></pre>
+      </div>
+    </section>
+
+    <!-- TAB 3: Model Energy Table -->
+    <section id="tab-models" class="panel">
+      <div class="card">
+        <div class="drop-row">
+          <h2 style="margin:0;">Energy Constants Reference (energy.json)</h2>
+          <input type="search" id="model-search" placeholder="Filter models or GPU..." style="max-width:260px;" />
+        </div>
+        <div style="overflow-x:auto; margin-top:10px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>GPU</th>
+                <th>Quant</th>
+                <th>Prefill (J/tok)</th>
+                <th>Decode (J/tok)</th>
+                <th>Reasoning</th>
+                <th>Measured</th>
+                <th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="models-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const SAMPLE_WORKFLOW = {
+      name: "Support Triage Agent",
+      nodes: [
+        { name: "Webhook Trigger", type: "n8n-nodes-base.webhook", parameters: {} },
+        { name: "AI Agent", type: "@n8n/n8n-nodes-langchain.agent", parameters: {} },
+        { name: "OpenAI Chat Model", type: "@n8n/n8n-nodes-langchain.lmChatOpenAi", parameters: { model: "gpt-4o", prompt: "Summarize customer email and extract phone" } },
+        { name: "Buffer Memory", type: "@n8n/n8n-nodes-langchain.memoryBufferWindow", parameters: { sessionIdType: "customKey", sessionKey: "hardcoded-support-key" } },
+        { name: "Fallback Anthropic", type: "@n8n/n8n-nodes-langchain.lmChatAnthropic", parameters: { model: "claude-3-5-sonnet" } }
+      ],
+      connections: {
+        "Webhook Trigger": { main: [[{ node: "AI Agent", type: "main", index: 0 }]] },
+        "OpenAI Chat Model": { ai_languageModel: [[{ node: "AI Agent", type: "ai_languageModel", index: 0 }]] },
+        "Buffer Memory": { ai_memory: [[{ node: "AI Agent", type: "ai_memory", index: 0 }]] }
+      }
+    };
+
+    const SAMPLE_EXEC_LOG = {
+      data: {
+        resultData: {
+          runData: {
+            "OpenAI Chat Model": [
+              { executionTime: 1150, data: { ai_languageModel: [[{ json: { tokenUsage: { promptTokens: 1450, completionTokens: 420 } } }]] } },
+              { executionTime: 980, data: { ai_languageModel: [[{ json: { tokenUsage: { promptTokens: 1520, completionTokens: 460 } } }]] } }
+            ]
+          }
+        }
+      }
+    };
+
+    let lastAuditResult = null;
+    let allModels = [];
+
+    // Tabs
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+      });
+    });
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      if (!msg) { el.style.display = "none"; el.textContent = ""; return; }
+      el.textContent = msg;
+      el.style.display = "block";
+    }
+
+    function downloadText(filename, content, mime = "text/plain") {
+      const blob = new Blob([content], { type: mime });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function bindFileInput(fileId, targetTextareaId) {
+      document.getElementById(fileId).addEventListener("change", async (e) => {
+        const f = e.target.files[0];
+        if (!f) return;
+        document.getElementById(targetTextareaId).value = await f.text();
+      });
+    }
+    bindFileInput("wf-file", "wf-json");
+    bindFileInput("exec-file", "exec-json");
+
+    document.getElementById("btn-load-sample").addEventListener("click", () => {
+      document.getElementById("wf-json").value = JSON.stringify(SAMPLE_WORKFLOW, null, 2);
+      document.getElementById("exec-json").value = JSON.stringify(SAMPLE_EXEC_LOG, null, 2);
+      showError("audit-error", "");
+    });
+
+    function getAuditPayload() {
+      const wfText = document.getElementById("wf-json").value.trim();
+      if (!wfText) throw new Error("Please provide an n8n workflow JSON (or click 'Load Sample Workflow').");
+      const workflow = JSON.parse(wfText);
+      const execText = document.getElementById("exec-json").value.trim();
+      const execution_log = execText ? JSON.parse(execText) : null;
+      return {
+        workflow,
+        execution_log,
+        tokens_in: Number(document.getElementById("audit-in").value || 1000),
+        tokens_out: Number(document.getElementById("audit-out").value || 400),
+        monthly_runs: Number(document.getElementById("audit-runs").value || 1000),
+        hourly_rate: Number(document.getElementById("audit-rate").value || 45),
+      };
+    }
+
+    document.getElementById("btn-run-audit").addEventListener("click", async () => {
+      showError("audit-error", "");
+      try {
+        const payload = getAuditPayload();
+        const res = await fetch("/api/audit-n8n", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Audit failed");
+        lastAuditResult = data;
+        renderAudit(data);
+      } catch (err) {
+        showError("audit-error", err.message);
+      }
+    });
+
+    function renderAudit(d) {
+      document.getElementById("audit-results").style.display = "block";
+      document.getElementById("res-wf-name").textContent = d.workflow_name;
+      document.getElementById("res-basis").textContent = `Basis: ${d.energy_source.toUpperCase()} · ${d.total_nodes} nodes`;
+      document.getElementById("res-joules").textContent = `${d.estimated_run_joules.toFixed(4)} J`;
+      document.getElementById("res-iqr").textContent = `IQR: ${d.estimated_run_joules_low.toFixed(4)} – ${d.estimated_run_joules_high.toFixed(4)} J`;
+      document.getElementById("res-cost").textContent = `$${d.estimated_run_cost_usd.toFixed(4)}`;
+      document.getElementById("res-latency").textContent = `Latency: ${d.total_latency_ms.toFixed(0)} ms`;
+      document.getElementById("res-loss").textContent = `$${d.estimated_monetary_loss_per_run_usd.toFixed(4)}`;
+      document.getElementById("res-rework").textContent = `Rework runs: ${d.total_rework_runs}`;
+
+      const flagsEl = document.getElementById("res-flags");
+      flagsEl.innerHTML = "";
+      const addFlags = (arr, cls) => (arr || []).forEach(f => {
+        const li = document.createElement("li");
+        li.className = `flag-item ${cls}`;
+        li.textContent = f;
+        flagsEl.appendChild(li);
+      });
+      addFlags(d.red_flags, "flag-red");
+      addFlags(d.yellow_flags, "flag-yellow");
+      addFlags(d.green_flags, "flag-green");
+      if (!flagsEl.children.length) {
+        flagsEl.innerHTML = '<li class="flag-item flag-green">No flags detected.</li>';
+      }
+
+      const migEl = document.getElementById("res-migrations");
+      migEl.innerHTML = "";
+      (d.migrations || []).forEach(m => {
+        const li = document.createElement("li");
+        li.className = "flag-item flag-mig";
+        li.textContent = m;
+        migEl.appendChild(li);
+      });
+      if (!migEl.children.length) {
+        migEl.innerHTML = '<li class="flag-item flag-green">All detected nodes are already local or native.</li>';
+      }
+
+      const invBody = document.getElementById("res-inventory");
+      invBody.innerHTML = "";
+      (d.inventory || []).forEach(item => {
+        const tr = document.createElement("tr");
+        const pill = item.is_cloud
+          ? '<span class="pill cloud">Cloud</span>'
+          : '<span class="pill local">Local</span>';
+        tr.innerHTML = `
+          <td>${escapeHtml(item.tool_or_node)}</td>
+          <td>${escapeHtml(item.vendor)}</td>
+          <td><code>${escapeHtml(item.model)}</code></td>
+          <td>${pill}</td>
+          <td>${escapeHtml(item.review_note)}</td>
+        `;
+        invBody.appendChild(tr);
+      });
+
+      document.getElementById("res-mermaid").textContent = d.mermaid_graph || "(empty)";
+      ["btn-dl-pdf", "btn-dl-csv", "btn-dl-json", "btn-dl-mmd"].forEach(id => {
+        document.getElementById(id).disabled = false;
+      });
+    }
+
+    document.getElementById("btn-dl-csv").addEventListener("click", () => {
+      if (lastAuditResult) downloadText("inventory.csv", lastAuditResult.inventory_csv, "text/csv");
+    });
+    document.getElementById("btn-dl-json").addEventListener("click", () => {
+      if (lastAuditResult) downloadText("inventory.json", lastAuditResult.inventory_json, "application/json");
+    });
+    document.getElementById("btn-dl-mmd").addEventListener("click", () => {
+      if (lastAuditResult) downloadText("workflow_graph.mmd", lastAuditResult.mermaid_graph, "text/plain");
+    });
+    document.getElementById("btn-copy-mmd").addEventListener("click", async () => {
+      if (lastAuditResult) await navigator.clipboard.writeText(lastAuditResult.mermaid_graph || "");
+    });
+    document.getElementById("btn-dl-pdf").addEventListener("click", async () => {
+      showError("audit-error", "");
+      try {
+        const payload = getAuditPayload();
+        const res = await fetch("/api/audit-n8n/pdf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "PDF generation failed");
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "thermdash_audit_report.pdf";
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        showError("audit-error", err.message);
+      }
+    });
+
+    // Energy Calculator
+    document.getElementById("btn-calc-energy").addEventListener("click", async () => {
+      showError("energy-error", "");
+      try {
+        const payload = {
+          model: document.getElementById("calc-model").value,
+          tokens_in: Number(document.getElementById("calc-in").value || 0),
+          tokens_out: Number(document.getElementById("calc-out").value || 0),
+          reasoning_tokens: Number(document.getElementById("calc-reasoning").value || 0),
+          rework_turns: Number(document.getElementById("calc-rework").value || 1),
+          quality: document.getElementById("calc-quality").value || null,
+          latency_ms: document.getElementById("calc-latency").value || null,
+        };
+        const res = await fetch("/api/calc-energy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Calculation failed");
+
+        document.getElementById("energy-results").style.display = "block";
+        document.getElementById("e-in").textContent = `${data.e_in_joules.toFixed(4)} J`;
+        document.getElementById("e-iqr").textContent = `IQR: ${data.e_in_iqr_low_joules.toFixed(4)} – ${data.e_in_iqr_high_joules.toFixed(4)} J`;
+        document.getElementById("e-useful").textContent = `${data.w_useful_joules.toFixed(4)} J`;
+        document.getElementById("e-hw").textContent = `${data.gpu} · ${data.quantization} · ${data.measured ? "measured" : "estimated"}`;
+        const etaPct = (data.eta * 100).toFixed(2);
+        const wastePct = (data.waste_share * 100).toFixed(2);
+        document.getElementById("e-eta").textContent = `${etaPct}%`;
+        document.getElementById("e-waste").textContent = `${wastePct}%`;
+        document.getElementById("e-turns").textContent = `Rework turns: ${data.rework_turns}`;
+        document.getElementById("bar-useful").style.width = `${Math.min(100, Math.max(0, data.eta * 100))}%`;
+        document.getElementById("bar-waste").style.width = `${Math.min(100, Math.max(0, data.waste_share * 100))}%`;
+        document.getElementById("e-json").textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        showError("energy-error", err.message);
+      }
+    });
+
+    function escapeHtml(str) {
+      return String(str ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function renderModelsTable(filter = "") {
+      const q = filter.trim().toLowerCase();
+      const tbody = document.getElementById("models-tbody");
+      tbody.innerHTML = "";
+      allModels
+        .filter(m => !q || m.model.toLowerCase().includes(q) || m.gpu.toLowerCase().includes(q) || m.source.toLowerCase().includes(q))
+        .forEach(m => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td><code>${escapeHtml(m.model)}</code></td>
+            <td>${escapeHtml(m.gpu)}</td>
+            <td>${escapeHtml(m.quantization)}</td>
+            <td>${m.e_prefill}</td>
+            <td>${m.e_decode}</td>
+            <td>${m.is_reasoning ? `${m.reasoning_multiplier}x` : "No"}</td>
+            <td>${m.measured ? "Yes" : "No"}</td>
+            <td>${escapeHtml(m.source)}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById("model-search").addEventListener("input", (e) => {
+      renderModelsTable(e.target.value);
+    });
+
+    async function init() {
+      const res = await fetch("/api/models");
+      const data = await res.json();
+      allModels = data.models || [];
+      const sel = document.getElementById("calc-model");
+      allModels.forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.model;
+        opt.textContent = `${m.model} (${m.gpu}, ${m.quantization}${m.is_reasoning ? ", reasoning" : ""})`;
+        if (m.model === "o3-mini") opt.selected = true;
+        sel.appendChild(opt);
+      });
+      renderModelsTable();
+    }
+    init();
+  </script>
+</body>
+</html>

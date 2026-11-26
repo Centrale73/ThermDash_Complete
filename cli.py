@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 """Unified CLI for ThermDash Complete (energy accounting + n8n audit + Law 25 inventory + PDF report)."""
 
@@ -13,6 +14,7 @@ from token_dashboard.inventory import export_inventory_csv, export_inventory_jso
 from token_dashboard.n8n_audit import N8nWorkflowAuditor
 from token_dashboard.pdf_report import generate_audit_pdf
 from token_dashboard.thermodynamics import efficiency
+from token_dashboard.web_ui import run_server
 
 
 def cmd_calc_energy(args: argparse.Namespace) -> int:
@@ -82,6 +84,11 @@ def cmd_audit_n8n(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_ui(args: argparse.Namespace) -> int:
+    run_server(host=args.host, port=args.port, open_browser=not args.no_browser)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="thermdash", description="ThermDash Complete CLI")
     sub = p.add_subparsers(dest="command", required=True)
@@ -107,6 +114,12 @@ def build_parser() -> argparse.ArgumentParser:
     n8n.add_argument("--mermaid-out", default=None, help="Export Mermaid dependency graph (.mmd)")
     n8n.add_argument("--pdf-out", default=None, help="Export formatted executive PDF report (.pdf)")
     n8n.set_defaults(func=cmd_audit_n8n)
+
+    ui = sub.add_parser("ui", help="Launch the local ThermDash web UI")
+    ui.add_argument("--host", default="127.0.0.1", help="Bind host (default: 127.0.0.1)")
+    ui.add_argument("--port", type=int, default=8501, help="Bind port (default: 8501)")
+    ui.add_argument("--no-browser", action="store_true", help="Do not automatically open the browser")
+    ui.set_defaults(func=cmd_ui)
 
     return p
 
