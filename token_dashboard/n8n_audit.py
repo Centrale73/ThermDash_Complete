@@ -1,12 +1,4 @@
-"""Modular n8n workflow auditor synthesized from ThermDash-AutoAudit.
-
-Inspects n8n workflow JSON files for:
-- Cloud vs. local AI vendor dependencies and raw httpRequest bypasses
-- Structural reliability gaps (missing Error Trigger, hardcoded memory keys, unpinned models)
-- PII field hints and Law 25 / GDPR review flags (non-legal engineering indicators)
-- Estimated per-run thermodynamic energy footprint when model names are pinned
-- Mermaid dependency graph generation and Law 25 tool inventory extraction
-"""
+"""Modular n8n workflow auditor with runtime execution-log ingestion and monetary loss estimation."""
 
 from __future__ import annotations
 
@@ -17,6 +9,8 @@ from typing import Any
 
 from .energy_table import lookup
 from .thermodynamics import MissingEnergyConstantsError, efficiency
+
+_DEFAULT_PRICING_JSON = Path(__file__).parent.parent / "pricing.json"
 
 VENDOR_ALIASES = {
     "lmChatOpenAi": "openai",
@@ -88,23 +82,85 @@ REGULATORY_HINTS = {
 PII_FIELD_HINTS = ["email", "name", "phone", "dob", "address", "postal", "birth", "ssn", "sin", "patient"]
 
 
+def _load_pricing(path: Path | None = None) -> dict[str, dict[str, float]]:
+    p = path or _DEFAULT_PRICING_JSON
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8")).get("models", {})
+
+
+def _estimate_token_cost_usd(model: str, tokens_in: int, tokens_out: int, pricing: dict[str, dict[str, float]]) -> float:
+    rates = pricing.get(model)
+    if not rates:
+        for k, v in pricing.items():
+            if model.lower().startswith(k.lower()):
+                rates = v
+                break
+    if not rates:
+        return 0.0
+    return (tokens_in / 1_000_000.0) * rates["input"] + (tokens_out / 1_000_000.0) * rates["output"]
+
+
+def extract_runtime_metrics(execution_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Extract per-node token counts, latency_ms, and run count from n8n execution JSON."""
+    run_data = execution_data.get("data", {}).get("resultData", {}).get("runData", {})
+    metrics: dict[str, dict[str, Any]] = {}
+
+    for node_name, runs in run_data.items():
+        if not isinstance(runs, list) or not runs:
+            continue
+        tokens_in, tokens_out, latency_ms = 0, 0, 0.0
+        has_tokens = False
+
+        for run in runs:
+            latency_ms += float(run.get("executionTime", 0.0) or 0.0)
+            data_block = run.get("data", {})
+            for channel in ("ai_languageModel", "main"):
+                for group in data_block.get(channel, []) or []:
+                    for item in group or []:
+                        j = item.get("json", {}) if isinstance(item, dict) else {}
+                        usage = j.get("tokenUsage") or j.get("usage") or {}
+                        p = usage.get("promptTokens", usage.get("prompt_tokens", usage.get("input_tokens")))
+                        c = usage.get("completionTokens", usage.get("completion_tokens", usage.get("output_tokens")))
+                        if p is not None or c is not None:
+                            tokens_in += int(p or 0)
+                            tokens_out += int(c or 0)
+                            has_tokens = True
+
+        metrics[node_name] = {
+            "tokens_in": tokens_in,
+            "tokens_out": tokens_out,
+            "latency_ms": latency_ms,
+            "runs": len(runs),
+            "has_tokens": has_tokens,
+        }
+    return metrics
+
+
 @dataclass
 class WorkflowAuditReport:
     workflow_name: str
     total_nodes: int
+    energy_source: str = "baseline_estimate"  # "runtime_log", "mixed", or "baseline_estimate"
     red_flags: list[str] = field(default_factory=list)
     yellow_flags: list[str] = field(default_factory=list)
     green_flags: list[str] = field(default_factory=list)
     migrations: list[str] = field(default_factory=list)
     detected_nodes: list[dict[str, Any]] = field(default_factory=list)
+    llm_features: list[dict[str, Any]] = field(default_factory=list)
+    agent_harness_nodes: list[str] = field(default_factory=list)
     estimated_run_joules: float = 0.0
     estimated_run_joules_low: float = 0.0
     estimated_run_joules_high: float = 0.0
+    estimated_run_cost_usd: float = 0.0
+    estimated_monetary_loss_per_run_usd: float = 0.0
+    total_latency_ms: float = 0.0
+    total_rework_runs: int = 0
     mermaid_graph: str = ""
 
 
 class N8nWorkflowAuditor:
-    """Parses and audits an n8n workflow JSON export."""
+    """Parses and audits an n8n workflow JSON export, optionally enriched with runtime logs."""
 
     def __init__(self, workflow_data: dict[str, Any]):
         self.workflow = workflow_data
@@ -172,7 +228,11 @@ class N8nWorkflowAuditor:
         self,
         assumed_in_tokens: int = 1000,
         assumed_out_tokens: int = 400,
+        execution_data: dict[str, Any] | None = None,
     ) -> WorkflowAuditReport:
+        runtime_map = extract_runtime_metrics(execution_data) if execution_data else {}
+        pricing = _load_pricing()
+
         report = WorkflowAuditReport(
             workflow_name=self.workflow.get("name", "Unknown Workflow"),
             total_nodes=len(self.nodes),
@@ -186,6 +246,8 @@ class N8nWorkflowAuditor:
             )
 
         ai_vendors: set[str] = set()
+        runtime_hits = 0
+        baseline_hits = 0
 
         for i, node in enumerate(self.nodes):
             raw_type = node.get("type", "").split(".")[-1]
@@ -194,6 +256,9 @@ class N8nWorkflowAuditor:
             params = node.get("parameters", {})
             model_raw = params.get("model", "")
             model_name = model_raw.get("value", "") if isinstance(model_raw, dict) else str(model_raw)
+
+            if vendor in ("langchain_agent", "langchain_logic", "n8n_memory", "local_memory"):
+                report.agent_harness_nodes.append(f"{node_name} ({raw_type})")
 
             report.detected_nodes.append({
                 "node_name": node_name,
@@ -231,7 +296,7 @@ class N8nWorkflowAuditor:
                     f"Node '{node_name}' sends data to Google services. {REGULATORY_HINTS['google']}"
                 )
 
-            if vendor in ("openai", "anthropic", "mistral", "google"):
+            if vendor in ("openai", "anthropic", "mistral", "google", "local_ollama", "local_lmstudio"):
                 if raw_type in ("lmChatGoogleGemini", "lmChatOpenAi", "openAi", "lmChatAnthropic", "mistralAi"):
                     ai_vendors.add(vendor)
                 if not model_name and raw_type not in ("googleCalendarTool", "googleSheets", "gmail", "gmailTool"):
@@ -239,12 +304,49 @@ class N8nWorkflowAuditor:
                         f"{vendor.upper()} model unpinned in '{node_name}'. {REGULATORY_HINTS['unpinned_model']}"
                     )
                 elif model_name:
+                    rt = runtime_map.get(node_name)
+                    if rt and rt["has_tokens"]:
+                        n_in, n_out = rt["tokens_in"], rt["tokens_out"]
+                        rework_turns = max(1, rt["runs"])
+                        latency = rt["latency_ms"]
+                        runtime_hits += 1
+                    else:
+                        n_in, n_out = assumed_in_tokens, assumed_out_tokens
+                        rework_turns = 1
+                        latency = rt["latency_ms"] if rt else None
+                        baseline_hits += 1
+
+                    if latency:
+                        report.total_latency_ms += latency
+                    if rework_turns > 1:
+                        report.total_rework_runs += rework_turns - 1
+
+                    cost_usd = _estimate_token_cost_usd(model_name, n_in, n_out, pricing)
+                    report.estimated_run_cost_usd += cost_usd
+
                     try:
                         c = lookup(model_name)
-                        eff = efficiency(assumed_in_tokens, assumed_out_tokens, c)
+                        eff = efficiency(n_in, n_out, c, rework_turns=rework_turns, latency_ms=latency)
                         report.estimated_run_joules += eff.e_in
                         report.estimated_run_joules_low += eff.e_in_low
                         report.estimated_run_joules_high += eff.e_in_high
+                        loss_usd = cost_usd * eff.waste_share
+                        report.estimated_monetary_loss_per_run_usd += loss_usd
+                        report.llm_features.append({
+                            "node_name": node_name,
+                            "vendor": vendor,
+                            "model": c.model,
+                            "gpu": c.gpu,
+                            "quantization": c.quantization,
+                            "is_reasoning": c.is_reasoning,
+                            "tokens_in": n_in,
+                            "tokens_out": n_out,
+                            "rework_turns": rework_turns,
+                            "e_in_joules": eff.e_in,
+                            "waste_share": eff.waste_share,
+                            "cost_usd": cost_usd,
+                            "loss_usd": loss_usd,
+                        })
                     except MissingEnergyConstantsError:
                         report.yellow_flags.append(
                             f"Model '{model_name}' in '{node_name}' not found in energy.json; energy unestimated."
@@ -263,6 +365,13 @@ class N8nWorkflowAuditor:
                 report.green_flags.append(
                     f"Node '{node_name}' uses local infrastructure (reduces cross-border transfer exposure; not a legal determination)."
                 )
+
+        if runtime_hits > 0 and baseline_hits == 0:
+            report.energy_source = "runtime_log"
+        elif runtime_hits > 0 and baseline_hits > 0:
+            report.energy_source = "mixed"
+        else:
+            report.energy_source = "baseline_estimate"
 
         if len(ai_vendors) == 1:
             v = next(iter(ai_vendors)).upper()
