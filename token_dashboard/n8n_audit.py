@@ -52,6 +52,10 @@ CLOUD_AI_DOMAINS = [
     "api.together.xyz",
     "openrouter.ai",
     "api.groq.com",
+    "api.vapi.ai",
+    "api.retellai.com",
+    "api.elevenlabs.io",
+    "api.bland.ai",
 ]
 
 LOCAL_REPLACEMENTS = {
@@ -73,7 +77,7 @@ LOCAL_REPLACEMENTS = {
 REGULATORY_HINTS = {
     "cross_border": "[Review: Law 25 Art. 17 — potential cross-border transfer; verify PIA & contract]",
     "google": "[Review: Law 25 Art. 17 / Art. 12 — external cloud transfer; verify disclosure]",
-    "httpRequest": "[Review: Law 25 Art. 17 — undeclared external AI API endpoint]",
+    "httpRequest": "[Review: Law 25 Art. 17 — external AI/voice API endpoint]",
     "hardcoded_session": "[Review: Law 25 Art. 13 — verify retention/deletion protocol]",
     "unpinned_model": "[Review: Model version unpinned — risk of silent cost/behavior drift]",
     "no_error_trigger": "[Review: Reliability gap — no Error Trigger for failed automated runs]",
@@ -99,6 +103,19 @@ def _estimate_token_cost_usd(model: str, tokens_in: int, tokens_out: int, pricin
     if not rates:
         return 0.0
     return (tokens_in / 1_000_000.0) * rates["input"] + (tokens_out / 1_000_000.0) * rates["output"]
+
+
+def _extract_model_name(params: dict[str, Any]) -> str:
+    """Extract model identifier from n8n v1/v2 `model` or `modelId` parameter schemas."""
+    for key in ("model", "modelId"):
+        raw = params.get(key)
+        if isinstance(raw, dict):
+            val = str(raw.get("value", "")).strip()
+            if val:
+                return val
+        elif isinstance(raw, str) and raw.strip():
+            return raw.strip()
+    return ""
 
 
 def extract_runtime_metrics(execution_data: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -141,6 +158,7 @@ def extract_runtime_metrics(execution_data: dict[str, Any]) -> dict[str, dict[st
 class WorkflowAuditReport:
     workflow_name: str
     total_nodes: int
+    sticky_notes_ignored: int = 0
     energy_source: str = "baseline_estimate"  # "runtime_log", "mixed", or "baseline_estimate"
     red_flags: list[str] = field(default_factory=list)
     yellow_flags: list[str] = field(default_factory=list)
@@ -185,9 +203,11 @@ class N8nWorkflowAuditor:
         node_styles: dict[str, dict[str, str]] = {}
 
         for i, node in enumerate(self.nodes):
+            raw_type = node.get("type", "").split(".")[-1]
+            if raw_type == "stickyNote":
+                continue
             node_name = self._safe_node_name(node, i)
             safe_id = f"N{i}"
-            raw_type = node.get("type", "").split(".")[-1]
             vendor = VENDOR_ALIASES.get(raw_type, "unknown")
 
             if vendor in ("openai", "anthropic", "google", "telegram", "mistral"):
@@ -195,7 +215,7 @@ class N8nWorkflowAuditor:
                 label = f"{node_name}\\n[cloud: {vendor}]"
             elif vendor in (
                 "local_ollama", "local_lmstudio", "n8n_memory", "local_memory",
-                "native_logic", "native_trigger", "native_data", "native_ui",
+                "native_logic", "native_trigger", "native_data",
                 "langchain_logic", "langchain_agent", "database",
             ):
                 style = "local"
@@ -233,13 +253,17 @@ class N8nWorkflowAuditor:
         runtime_map = extract_runtime_metrics(execution_data) if execution_data else {}
         pricing = _load_pricing()
 
+        active_nodes = [n for n in self.nodes if n.get("type", "").split(".")[-1] != "stickyNote"]
+        sticky_count = len(self.nodes) - len(active_nodes)
+
         report = WorkflowAuditReport(
             workflow_name=self.workflow.get("name", "Unknown Workflow"),
-            total_nodes=len(self.nodes),
+            total_nodes=len(active_nodes),
+            sticky_notes_ignored=sticky_count,
             mermaid_graph=self.generate_mermaid_graph(),
         )
 
-        has_error_trigger = any("error" in n.get("type", "").lower() for n in self.nodes)
+        has_error_trigger = any("error" in n.get("type", "").lower() for n in active_nodes)
         if not has_error_trigger:
             report.red_flags.append(
                 f"No Error Trigger detected; workflow may fail silently. {REGULATORY_HINTS['no_error_trigger']}"
@@ -249,23 +273,34 @@ class N8nWorkflowAuditor:
         runtime_hits = 0
         baseline_hits = 0
 
-        for i, node in enumerate(self.nodes):
+        for i, node in enumerate(active_nodes):
             raw_type = node.get("type", "").split(".")[-1]
             node_name = self._safe_node_name(node, i)
             vendor = VENDOR_ALIASES.get(raw_type, "unknown")
             params = node.get("parameters", {})
-            model_raw = params.get("model", "")
-            model_name = model_raw.get("value", "") if isinstance(model_raw, dict) else str(model_raw)
+            model_name = _extract_model_name(params)
 
             if vendor in ("langchain_agent", "langchain_logic", "n8n_memory", "local_memory"):
                 report.agent_harness_nodes.append(f"{node_name} ({raw_type})")
+
+            is_cloud_http = False
+            if raw_type == "httpRequest":
+                url = str(params.get("url", ""))
+                for domain in CLOUD_AI_DOMAINS:
+                    if domain in url:
+                        is_cloud_http = True
+                        ai_vendors.add(domain)
+                        report.red_flags.append(
+                            f"Node '{node_name}' calls external AI/voice API '{domain}' via HTTP. {REGULATORY_HINTS['httpRequest']}"
+                        )
+                        break
 
             report.detected_nodes.append({
                 "node_name": node_name,
                 "node_type": raw_type,
                 "vendor": vendor,
                 "model": model_name,
-                "is_cloud": vendor in ("openai", "anthropic", "google", "mistral", "telegram"),
+                "is_cloud": is_cloud_http or vendor in ("openai", "anthropic", "google", "mistral", "telegram"),
             })
 
             if "memory" in node.get("type", "").lower():
@@ -274,15 +309,6 @@ class N8nWorkflowAuditor:
                     report.red_flags.append(
                         f"Hardcoded memory sessionKey '{key}' in '{node_name}'. {REGULATORY_HINTS['hardcoded_session']}"
                     )
-
-            if raw_type == "httpRequest":
-                url = str(params.get("url", ""))
-                for domain in CLOUD_AI_DOMAINS:
-                    if domain in url:
-                        report.red_flags.append(
-                            f"Node '{node_name}' calls '{domain}' via raw HTTP. {REGULATORY_HINTS['httpRequest']}"
-                        )
-                        break
 
             lookup_type = raw_type
             if raw_type == "openAi":
@@ -352,7 +378,7 @@ class N8nWorkflowAuditor:
                             f"Model '{model_name}' in '{node_name}' not found in energy.json; energy unestimated."
                         )
 
-            if vendor in ("openai", "anthropic"):
+            if vendor in ("openai", "anthropic") or is_cloud_http:
                 params_str = json.dumps(params).lower()
                 for hint in PII_FIELD_HINTS:
                     if hint in params_str:

@@ -21,8 +21,11 @@
     button.secondary { background:#fff; color:var(--accent); border:1px solid var(--border); }
     button:disabled { opacity:.45; cursor:not-allowed; }
     .hero { background:var(--redbg); border:2px solid #dc2626; border-radius:10px; padding:20px; margin-bottom:20px; }
+    .hero.neutral { background:#f1f5f9; border-color:#64748b; }
     .hero .label { font-size:12px; font-weight:700; color:#7f1d1d; letter-spacing:.04em; }
+    .hero.neutral .label { color:#334155; }
     .hero .amount { font-size:34px; font-weight:800; color:var(--red); margin:4px 0; }
+    .hero.neutral .amount { color:#1e293b; font-size:24px; }
     .badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; background:#e2e8f0; color:#1e293b; }
     table { width:100%; border-collapse:collapse; font-size:13px; }
     th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
@@ -67,8 +70,8 @@
     </section>
 
     <div id="results" class="hidden">
-      <section class="hero">
-        <div class="label">ESTIMATED MONTHLY MONETARY LOSS (MAIN FINDING)</div>
+      <section class="hero" id="heroBox">
+        <div class="label" id="heroLabel">ESTIMATED MONTHLY MONETARY LOSS (MAIN FINDING)</div>
         <div class="amount" id="heroLoss">$0.00 USD / mo</div>
         <div id="heroSub" style="font-size:13px;color:#334155;"></div>
       </section>
@@ -127,11 +130,23 @@
       document.getElementById("pdfBtn").disabled = false;
       document.getElementById("csvBtn").disabled = false;
 
-      document.getElementById("heroLoss").textContent = `$${d.total_monthly_loss_usd.toLocaleString(undefined,{minimumFractionDigits:2})} USD / mo`;
-      document.getElementById("heroSub").textContent = `API waste: $${d.api_loss_monthly_usd.toFixed(2)} + Staff rework: $${d.rework_loss_monthly_usd.toFixed(2)} (${d.monthly_runs.toLocaleString()} runs/mo)`;
+      const heroBox = document.getElementById("heroBox");
+      if (d.llm_features.length === 0) {
+        heroBox.classList.add("neutral");
+        document.getElementById("heroLabel").textContent = "DETERMINISTIC / EXTERNAL API AUTOMATION";
+        document.getElementById("heroLoss").textContent = "No Pinned LLM Token Spend ($0.00 / mo)";
+        document.getElementById("heroSub").textContent = "Review the reliability, external AI/voice API, and Law 25 governance flags below.";
+      } else {
+        heroBox.classList.remove("neutral");
+        document.getElementById("heroLabel").textContent = "ESTIMATED MONTHLY MONETARY LOSS (MAIN FINDING)";
+        document.getElementById("heroLoss").textContent = `$${d.total_monthly_loss_usd.toLocaleString(undefined,{minimumFractionDigits:2})} USD / mo`;
+        document.getElementById("heroSub").textContent = `API waste: $${d.api_loss_monthly_usd.toFixed(2)} + Staff rework: $${d.rework_loss_monthly_usd.toFixed(2)} (${d.monthly_runs.toLocaleString()} runs/mo)`;
+      }
+
       document.getElementById("wfTitle").textContent = d.workflow_name;
       document.getElementById("dataBasis").textContent = d.energy_source.replace("_"," ").toUpperCase();
-      document.getElementById("energySummary").textContent = `Energy/Run: ${d.estimated_run_joules.toFixed(4)} J (IQR: ${d.estimated_run_joules_low.toFixed(4)}–${d.estimated_run_joules_high.toFixed(4)} J) | Latency: ${Math.round(d.total_latency_ms)} ms | Nodes: ${d.total_nodes}`;
+      const notesTxt = d.sticky_notes_ignored ? ` (${d.sticky_notes_ignored} sticky notes ignored)` : "";
+      document.getElementById("energySummary").textContent = `Energy/Run: ${d.estimated_run_joules.toFixed(4)} J (IQR: ${d.estimated_run_joules_low.toFixed(4)}–${d.estimated_run_joules_high.toFixed(4)} J) | Latency: ${Math.round(d.total_latency_ms)} ms | Active Nodes: ${d.total_nodes}${notesTxt}`;
 
       const tbody = document.getElementById("llmRows");
       tbody.innerHTML = d.llm_features.length ? d.llm_features.map(f =>
