@@ -38,227 +38,82 @@
       flex-wrap: wrap;
       gap: 12px;
     }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    .brand { display: flex; align-items: center; gap: 12px; }
     .brand-badge {
-      width: 36px;
-      height: 36px;
-      border-radius: 9px;
+      width: 36px; height: 36px; border-radius: 9px;
       background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      display: grid;
-      place-items: center;
-      font-weight: 800;
-      color: #06121c;
-      font-size: 16px;
+      display: grid; place-items: center; font-weight: 800; color: #06121c; font-size: 16px;
     }
-    .brand h1 {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-    .brand p {
-      margin: 0;
-      font-size: 12px;
-      color: var(--muted);
-    }
-    nav.tabs {
-      display: flex;
-      gap: 8px;
-    }
+    .brand h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+    .brand p { margin: 0; font-size: 12px; color: var(--muted); }
+    nav.tabs { display: flex; gap: 8px; }
     .tab-btn {
-      background: var(--surface);
-      color: var(--muted);
-      border: 1px solid var(--border);
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
+      background: var(--surface); color: var(--muted); border: 1px solid var(--border);
+      padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600;
       transition: all 0.15s ease;
     }
     .tab-btn:hover { color: var(--text); border-color: #3a4f7a; }
-    .tab-btn.active {
-      background: rgba(56, 189, 248, 0.14);
-      color: var(--accent);
-      border-color: var(--accent);
-    }
-    main {
-      max-width: 1280px;
-      margin: 0 auto;
-      padding: 24px 28px 48px;
-    }
+    .tab-btn.active { background: rgba(56, 189, 248, 0.14); color: var(--accent); border-color: var(--accent); }
+    main { max-width: 1280px; margin: 0 auto; padding: 24px 28px 48px; }
     .panel { display: none; }
     .panel.active { display: block; }
-    .grid-2 {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-      gap: 18px;
-    }
+    .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 18px; }
     .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
-      margin-bottom: 18px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px; margin-bottom: 18px;
     }
-    .card h2, .card h3 {
-      margin: 0 0 12px;
-      font-size: 15px;
-      font-weight: 650;
-      color: var(--text);
-    }
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: 12px;
-    }
-    label {
-      display: block;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      font-weight: 500;
-    }
+    .card h2, .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 650; color: var(--text); }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
     input, select, textarea {
-      width: 100%;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 7px;
-      padding: 8px 10px;
-      font-size: 13px;
-      font-family: inherit;
+      width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 7px; padding: 8px 10px; font-size: 13px; font-family: inherit;
     }
-    textarea {
-      font-family: var(--mono);
-      font-size: 12px;
-      min-height: 150px;
-      resize: vertical;
-    }
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-    .btn-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-      align-items: center;
-    }
+    textarea { font-family: var(--mono); font-size: 12px; min-height: 150px; resize: vertical; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; align-items: center; }
     button.primary {
-      background: linear-gradient(135deg, var(--accent), #0ea5e9);
-      color: #05131e;
-      border: none;
-      padding: 9px 18px;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #0ea5e9); color: #05131e;
+      border: none; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer;
     }
     button.secondary {
-      background: var(--surface-2);
-      color: var(--text);
-      border: 1px solid var(--border);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 13px;
-      cursor: pointer;
+      background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;
     }
     button.secondary:hover { border-color: var(--accent); }
     button:disabled { opacity: 0.55; cursor: not-allowed; }
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
-    }
-    .kpi {
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 14px;
-    }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .kpi { background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 14px; }
     .kpi .k-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
     .kpi .k-val { font-size: 22px; font-weight: 750; margin-top: 4px; font-variant-numeric: tabular-nums; }
     .kpi .k-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
     .bar-wrap {
-      background: #0d1422;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      height: 14px;
-      overflow: hidden;
-      display: flex;
-      margin: 10px 0 6px;
+      background: #0d1422; border: 1px solid var(--border); border-radius: 999px;
+      height: 14px; overflow: hidden; display: flex; margin: 10px 0 6px;
     }
     .bar-useful { background: var(--accent-2); height: 100%; transition: width 0.25s ease; }
     .bar-waste { background: var(--warn); height: 100%; transition: width 0.25s ease; }
     .flag-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
-    .flag-item {
-      padding: 9px 12px;
-      border-radius: 7px;
-      font-size: 13px;
-      border-left: 3px solid;
-      background: var(--surface-2);
-    }
+    .flag-item { padding: 9px 12px; border-radius: 7px; font-size: 13px; border-left: 3px solid; background: var(--surface-2); }
     .flag-red { border-color: var(--danger); }
     .flag-yellow { border-color: var(--warn); }
     .flag-green { border-color: var(--accent-2); }
     .flag-mig { border-color: var(--accent); }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-    }
-    th, td {
-      text-align: left;
-      padding: 9px 10px;
-      border-bottom: 1px solid var(--border);
-    }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); }
     th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; }
-    .pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 600;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-    }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--surface-2); border: 1px solid var(--border); }
     .pill.cloud { color: var(--warn); border-color: rgba(245, 158, 11, 0.4); }
     .pill.local { color: var(--accent-2); border-color: rgba(16, 185, 129, 0.4); }
     .error-box {
-      background: rgba(239, 68, 68, 0.12);
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      color: #fecaca;
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      margin-bottom: 14px;
-      display: none;
+      background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fecaca; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display: none;
     }
     pre.code-box {
-      background: #080d17;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 12px;
-      font-family: var(--mono);
-      font-size: 12px;
-      overflow-x: auto;
-      margin: 0;
+      background: #080d17; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px; font-family: var(--mono); font-size: 12px; overflow-x: auto; margin: 0;
     }
-    .drop-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 6px;
-      gap: 8px;
-    }
+    .drop-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
     input[type="file"] { padding: 5px; font-size: 12px; }
   </style>
 </head>
@@ -268,7 +123,7 @@
       <div class="brand-badge">TD</div>
       <div>
         <h1>ThermDash Complete</h1>
-        <p>Local-first AI Thermodynamics, n8n Workflow Audit &amp; Law 25 Inventory</p>
+        <p>Central 73 — n8n Workflow Audit, Operating Cost &amp; EcoLogits Environmental Layer</p>
       </div>
     </div>
     <nav class="tabs">
@@ -300,7 +155,7 @@
               <label for="exec-file" style="margin:0;">n8n Execution Log JSON (optional)</label>
               <input type="file" id="exec-file" accept=".json,application/json" style="width:auto;" />
             </div>
-            <textarea id="exec-json" placeholder="Optional: paste execution log JSON for runtime token counts &amp; rework detection..."></textarea>
+            <textarea id="exec-json" placeholder="Optional: paste execution log JSON for runtime token counts..."></textarea>
           </div>
         </div>
         <div class="form-grid" style="margin-top:14px;">
@@ -338,19 +193,19 @@
             <div class="k-sub" id="res-basis">—</div>
           </div>
           <div class="kpi">
-            <div class="k-label">Est. Energy / Run</div>
-            <div class="k-val" id="res-joules">—</div>
-            <div class="k-sub" id="res-iqr">—</div>
-          </div>
-          <div class="kpi">
             <div class="k-label">Est. API Cost / Run</div>
             <div class="k-val" id="res-cost">—</div>
             <div class="k-sub" id="res-latency">—</div>
           </div>
           <div class="kpi">
-            <div class="k-label">Monetary Loss / Run</div>
-            <div class="k-val" id="res-loss" style="color:var(--warn);">—</div>
-            <div class="k-sub" id="res-rework">—</div>
+            <div class="k-label">EcoLogits Energy / Run</div>
+            <div class="k-val" id="res-eco">—</div>
+            <div class="k-sub" id="res-eco-sub">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k-label">Extra Model Calls</div>
+            <div class="k-val" id="res-extra" style="color:var(--warn);">—</div>
+            <div class="k-sub">Verify retries vs required steps</div>
           </div>
         </div>
 
@@ -360,7 +215,7 @@
             <ul class="flag-list" id="res-flags"></ul>
           </div>
           <div class="card">
-            <h3>Recommended Local Migrations</h3>
+            <h3>Candidate Simplification / Local Options</h3>
             <ul class="flag-list" id="res-migrations"></ul>
           </div>
         </div>
@@ -397,7 +252,7 @@
     <section id="tab-energy" class="panel">
       <div id="energy-error" class="error-box"></div>
       <div class="card">
-        <h2>Thermodynamic Efficiency Calculator</h2>
+        <h2>Thermodynamic Efficiency Calculator (Legacy Reference)</h2>
         <div class="form-grid">
           <div>
             <label for="calc-model">Model</label>
@@ -469,7 +324,7 @@
     <section id="tab-models" class="panel">
       <div class="card">
         <div class="drop-row">
-          <h2 style="margin:0;">Energy Constants Reference (energy.json)</h2>
+          <h2 style="margin:0;">Energy Constants Reference (Quarantined Legacy Table)</h2>
           <input type="search" id="model-search" placeholder="Filter models or GPU..." style="max-width:260px;" />
         </div>
         <div style="overflow-x:auto; margin-top:10px;">
@@ -526,7 +381,6 @@
     let lastAuditResult = null;
     let allModels = [];
 
-    // Tabs
     document.querySelectorAll(".tab-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
@@ -605,14 +459,31 @@
 
     function renderAudit(d) {
       document.getElementById("audit-results").style.display = "block";
-      document.getElementById("res-wf-name").textContent = d.workflow_name;
-      document.getElementById("res-basis").textContent = `Basis: ${d.energy_source.toUpperCase()} · ${d.total_nodes} nodes`;
-      document.getElementById("res-joules").textContent = `${d.estimated_run_joules.toFixed(4)} J`;
-      document.getElementById("res-iqr").textContent = `IQR: ${d.estimated_run_joules_low.toFixed(4)} – ${d.estimated_run_joules_high.toFixed(4)} J`;
-      document.getElementById("res-cost").textContent = `$${d.estimated_run_cost_usd.toFixed(4)}`;
-      document.getElementById("res-latency").textContent = `Latency: ${d.total_latency_ms.toFixed(0)} ms`;
-      document.getElementById("res-loss").textContent = `$${d.estimated_monetary_loss_per_run_usd.toFixed(4)}`;
-      document.getElementById("res-rework").textContent = `Rework runs: ${d.total_rework_runs}`;
+      document.getElementById("res-wf-name").textContent = d.workflow_name || "Unknown Workflow";
+      const basis = String(d.cost_source || "baseline_estimate").replace(/_/g, " ").toUpperCase();
+      document.getElementById("res-basis").textContent = `Basis: ${basis} · ${d.total_nodes ?? 0} nodes`;
+
+      if (d.estimated_run_cost_usd != null) {
+        document.getElementById("res-cost").textContent = `$${Number(d.estimated_run_cost_usd).toFixed(4)}`;
+      } else {
+        document.getElementById("res-cost").textContent = "Not quantified";
+      }
+      document.getElementById("res-latency").textContent = `Latency: ${Number(d.total_latency_ms || 0).toFixed(0)} ms`;
+
+      const envs = d.environmental_estimates || [];
+      const estimated = envs.filter(e => e.status === "estimated" && e.energy_kwh != null);
+      if (estimated.length > 0) {
+        const totalKwh = estimated.reduce((acc, e) => acc + Number(e.energy_kwh), 0);
+        document.getElementById("res-eco").textContent = `${totalKwh.toFixed(5)} kWh`;
+        document.getElementById("res-eco-sub").textContent = `EcoLogits (${estimated.length}/${envs.length} LLM nodes)`;
+      } else {
+        document.getElementById("res-eco").textContent = "Not estimated";
+        document.getElementById("res-eco-sub").textContent = envs.length
+          ? (envs[0].warnings?.[0] || "Model unsupported or EcoLogits unavailable")
+          : "No pinned LLM nodes";
+      }
+
+      document.getElementById("res-extra").textContent = String(d.extra_model_calls ?? 0);
 
       const flagsEl = document.getElementById("res-flags");
       flagsEl.innerHTML = "";
@@ -701,7 +572,6 @@
       }
     });
 
-    // Energy Calculator
     document.getElementById("btn-calc-energy").addEventListener("click", async () => {
       showError("energy-error", "");
       try {
@@ -745,7 +615,8 @@
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function renderModelsTable(filter = "") {
@@ -753,17 +624,17 @@
       const tbody = document.getElementById("models-tbody");
       tbody.innerHTML = "";
       allModels
-        .filter(m => !q || m.model.toLowerCase().includes(q) || m.gpu.toLowerCase().includes(q) || m.source.toLowerCase().includes(q))
+        .filter(m => !q || m.model.toLowerCase().includes(q) || m.gpu.toLowerCase().includes(q))
         .forEach(m => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td><code>${escapeHtml(m.model)}</code></td>
             <td>${escapeHtml(m.gpu)}</td>
             <td>${escapeHtml(m.quantization)}</td>
-            <td>${m.e_prefill}</td>
-            <td>${m.e_decode}</td>
-            <td>${m.is_reasoning ? `${m.reasoning_multiplier}x` : "No"}</td>
-            <td>${m.measured ? "Yes" : "No"}</td>
+            <td>${Number(m.e_prefill_j).toFixed(4)}</td>
+            <td>${Number(m.e_decode_j).toFixed(4)}</td>
+            <td>${m.is_reasoning ? "Yes" : "No"}</td>
+            <td>${m.measured ? "Measured" : "Estimated"}</td>
             <td>${escapeHtml(m.source)}</td>
           `;
           tbody.appendChild(tr);
@@ -775,18 +646,16 @@
     });
 
     async function init() {
-      const res = await fetch("/api/models");
-      const data = await res.json();
-      allModels = data.models || [];
-      const sel = document.getElementById("calc-model");
-      allModels.forEach(m => {
-        const opt = document.createElement("option");
-        opt.value = m.model;
-        opt.textContent = `${m.model} (${m.gpu}, ${m.quantization}${m.is_reasoning ? ", reasoning" : ""})`;
-        if (m.model === "o3-mini") opt.selected = true;
-        sel.appendChild(opt);
-      });
-      renderModelsTable();
+      try {
+        const res = await fetch("/api/models");
+        const data = await res.json();
+        allModels = data.models || [];
+        const sel = document.getElementById("calc-model");
+        sel.innerHTML = allModels.map(m => `<option value="${escapeHtml(m.model)}">${escapeHtml(m.model)}</option>`).join("");
+        renderModelsTable();
+      } catch (err) {
+        console.error("Failed to load models", err);
+      }
     }
     init();
   </script>
