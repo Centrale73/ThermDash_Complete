@@ -1,15 +1,26 @@
 {
   "currency": "USD",
   "unit": "per_1m_tokens",
+  "verified_date": "2026-11-25",
   "models": {
+    "claude-opus-5.5": { "input": 4.00, "output": 20.00, "cached_input": 0.20 },
+    "claude-fable-5.2": { "input": 8.00, "output": 40.00 },
+    "claude-mythos-5.2": { "input": 8.00, "output": 40.00 },
     "claude-3-5-sonnet": { "input": 3.00, "output": 15.00 },
     "claude-3-7-sonnet-thinking": { "input": 3.00, "output": 15.00 },
     "claude-opus-4-7": { "input": 15.00, "output": 75.00 },
+    "gemini-4-hydrogen": { "input": 1.50, "output": 7.50 },
+    "gemini-4-neon": { "input": 3.00, "output": 15.00, "cached_input": 0.15 },
+    "gemini-4-carbon": { "input": 2.00, "output": 10.00, "note": "Intro rate through 2026-11-30; $4/$20 starting 2026-12-01" },
+    "gemini-4-argon": { "input": 2.00, "output": 10.00, "note": "Intro rate through 2026-11-30; $4/$20 starting 2026-12-01" },
+    "gemini-3.7-flash": { "input": 0.10, "output": 0.40 },
+    "gpt-6.2-astra": { "input": 8.00, "output": 40.00, "cached_input": 0.40 },
+    "gpt-6.2-sol": { "input": 2.00, "output": 10.00, "cached_input": 0.10 },
+    "gpt-6-luna": { "input": 0.10, "output": 0.50, "cached_input": 0.01 },
     "gpt-4o": { "input": 2.50, "output": 10.00 },
     "gpt-4o-mini": { "input": 0.15, "output": 0.60 },
     "o3-mini": { "input": 1.10, "output": 4.40 },
     "deepseek-r1": { "input": 0.55, "output": 2.19 },
-    "llama-3.1-70b": { "input": 0.40, "output": 0.40 },
-    "gemini-3.7-flash": { "input": 0.10, "output": 0.40 }
+    "llama-3.1-70b": { "input": 0.40, "output": 0.40 }
   }
 }

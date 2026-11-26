@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ThermDash Complete — AI Efficiency Audit</title>
+  <style>
+    :root { --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --muted:#475569; --border:#e2e8f0; --red:#b91c1c; --redbg:#fef2f2; --amber:#b45309; --green:#15803d; --accent:#1e293b; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; }
+    header { background:var(--accent); color:#fff; padding:20px 28px; display:flex; justify-content:space-between; align-items:center; }
+    header h1 { margin:0; font-size:20px; }
+    header span { font-size:13px; color:#cbd5e1; }
+    main { max-width:1100px; margin:24px auto; padding:0 20px 48px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:20px; margin-bottom:20px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
+    label { display:block; font-size:12px; font-weight:600; color:var(--muted); margin-bottom:4px; }
+    input[type="file"], input[type="number"] { width:100%; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:14px; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+    button { background:var(--accent); color:#fff; border:none; border-radius:6px; padding:10px 16px; font-size:14px; font-weight:600; cursor:pointer; }
+    button.secondary { background:#fff; color:var(--accent); border:1px solid var(--border); }
+    button:disabled { opacity:.45; cursor:not-allowed; }
+    .hero { background:var(--redbg); border:2px solid #dc2626; border-radius:10px; padding:20px; margin-bottom:20px; }
+    .hero .label { font-size:12px; font-weight:700; color:#7f1d1d; letter-spacing:.04em; }
+    .hero .amount { font-size:34px; font-weight:800; color:var(--red); margin:4px 0; }
+    .badge { display:inline-block; padding:3px 8px; border-radius:999px; font-size:11px; font-weight:700; background:#e2e8f0; color:#1e293b; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { text-align:left; padding:9px 10px; border-bottom:1px solid var(--border); }
+    th { background:#f1f5f9; font-weight:700; color:#334155; }
+    ul { margin:8px 0 0; padding-left:18px; font-size:14px; }
+    .flag-red { color:var(--red); }
+    .flag-yellow { color:var(--amber); }
+    .flag-green { color:var(--green); }
+    .hidden { display:none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ThermDash Complete</h1>
+    <span>Central 73 — Local-First AI Efficiency &amp; Workflow Audit</span>
+  </header>
+  <main>
+    <section class="card">
+      <div class="grid">
+        <div>
+          <label>n8n Workflow JSON (required)</label>
+          <input id="wfFile" type="file" accept=".json" />
+        </div>
+        <div>
+          <label>n8n Execution Log JSON (optional)</label>
+          <input id="execFile" type="file" accept=".json" />
+        </div>
+        <div>
+          <label>Monthly Runs</label>
+          <input id="monthlyRuns" type="number" value="1000" min="1" />
+        </div>
+        <div>
+          <label>Staff Hourly Rate (USD)</label>
+          <input id="hourlyRate" type="number" value="45" min="0" />
+        </div>
+      </div>
+      <div class="actions">
+        <button id="runBtn">Run Audit</button>
+        <button id="pdfBtn" class="secondary" disabled>Download Executive PDF</button>
+        <button id="csvBtn" class="secondary" disabled>Download Law 25 CSV</button>
+      </div>
+    </section>
+
+    <div id="results" class="hidden">
+      <section class="hero">
+        <div class="label">ESTIMATED MONTHLY MONETARY LOSS (MAIN FINDING)</div>
+        <div class="amount" id="heroLoss">$0.00 USD / mo</div>
+        <div id="heroSub" style="font-size:13px;color:#334155;"></div>
+      </section>
+
+      <section class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 id="wfTitle" style="margin:0;font-size:18px;">Workflow</h2>
+          <span class="badge" id="dataBasis">BASELINE ESTIMATE</span>
+        </div>
+        <div id="energySummary" style="font-size:13px;color:#475569;margin-bottom:14px;"></div>
+        <table>
+          <thead>
+            <tr><th>Node</th><th>Model</th><th>GPU / Quant</th><th>Reasoning</th><th>Tokens (In/Out)</th><th>Waste %</th><th>Loss/Run</th></tr>
+          </thead>
+          <tbody id="llmRows"></tbody>
+        </table>
+      </section>
+
+      <section class="card" id="harnessCard">
+        <h3 style="margin-top:0;">Agent Harness &amp; Orchestration</h3>
+        <ul id="harnessList"></ul>
+      </section>
+
+      <section class="card">
+        <h3 style="margin-top:0;">AI Automation Diagnostics &amp; Law 25 Review Flags</h3>
+        <ul id="flagsList"></ul>
+      </section>
+    </div>
+  </main>
+  <script>
+    let lastPayload = null;
+    async function readJson(input) {
+      if (!input.files || !input.files[0]) return null;
+      return JSON.parse(await input.files[0].text());
+    }
+    async function buildPayload() {
+      const workflow = await readJson(document.getElementById("wfFile"));
+      if (!workflow) { alert("Please select an n8n workflow JSON file."); return null; }
+      const execution_log = await readJson(document.getElementById("execFile"));
+      return {
+        workflow,
+        execution_log,
+        monthly_runs: Number(document.getElementById("monthlyRuns").value || 1000),
+        hourly_rate: Number(document.getElementById("hourlyRate").value || 45)
+      };
+    }
+    document.getElementById("runBtn").onclick = async () => {
+      const payload = await buildPayload();
+      if (!payload) return;
+      lastPayload = payload;
+      const res = await fetch("/api/audit", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+      const d = await res.json();
+      if (!res.ok) { alert(d.error || "Audit failed"); return; }
+
+      document.getElementById("results").classList.remove("hidden");
+      document.getElementById("pdfBtn").disabled = false;
+      document.getElementById("csvBtn").disabled = false;
+
+      document.getElementById("heroLoss").textContent = `$${d.total_monthly_loss_usd.toLocaleString(undefined,{minimumFractionDigits:2})} USD / mo`;
+      document.getElementById("heroSub").textContent = `API waste: $${d.api_loss_monthly_usd.toFixed(2)} + Staff rework: $${d.rework_loss_monthly_usd.toFixed(2)} (${d.monthly_runs.toLocaleString()} runs/mo)`;
+      document.getElementById("wfTitle").textContent = d.workflow_name;
+      document.getElementById("dataBasis").textContent = d.energy_source.replace("_"," ").toUpperCase();
+      document.getElementById("energySummary").textContent = `Energy/Run: ${d.estimated_run_joules.toFixed(4)} J (IQR: ${d.estimated_run_joules_low.toFixed(4)}–${d.estimated_run_joules_high.toFixed(4)} J) | Latency: ${Math.round(d.total_latency_ms)} ms | Nodes: ${d.total_nodes}`;
+
+      const tbody = document.getElementById("llmRows");
+      tbody.innerHTML = d.llm_features.length ? d.llm_features.map(f =>
+        `<tr><td>${f.node_name}</td><td>${f.model}</td><td>${f.gpu} / ${f.quantization}</td><td>${f.is_reasoning ? "Yes" : "No"}</td><td>${f.tokens_in} / ${f.tokens_out}</td><td>${(f.waste_share*100).toFixed(1)}%</td><td>$${f.loss_usd.toFixed(4)}</td></tr>`
+      ).join("") : `<tr><td colspan="7">No pinned LLM models detected.</td></tr>`;
+
+      const hCard = document.getElementById("harnessCard");
+      if (d.agent_harness_nodes.length) {
+        hCard.classList.remove("hidden");
+        document.getElementById("harnessList").innerHTML = d.agent_harness_nodes.map(x => `<li>${x}</li>`).join("");
+      } else { hCard.classList.add("hidden"); }
+
+      const flags = [
+        ...d.red_flags.map(f => `<li class="flag-red"><strong>[RED]</strong> ${f}</li>`),
+        ...d.yellow_flags.map(f => `<li class="flag-yellow"><strong>[YELLOW]</strong> ${f}</li>`),
+        ...d.green_flags.map(f => `<li class="flag-green"><strong>[GREEN]</strong> ${f}</li>`),
+      ];
+      document.getElementById("flagsList").innerHTML = flags.join("") || "<li>No flags detected.</li>";
+    };
+
+    async function downloadFrom(endpoint, filename) {
+      if (!lastPayload) return;
+      const res = await fetch(endpoint, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(lastPayload) });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+    }
+    document.getElementById("pdfBtn").onclick = () => downloadFrom("/api/audit/pdf", "thermdash_audit_report.pdf");
+    document.getElementById("csvBtn").onclick = () => downloadFrom("/api/audit/inventory.csv", "law25_inventory.csv");
+  </script>
+</body>
+</html>
